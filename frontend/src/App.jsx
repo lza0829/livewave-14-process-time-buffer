@@ -8,6 +8,7 @@ import 撤回单 from "./pages/撤回单.jsx";
 import 旁路匣 from "./pages/旁路匣.jsx";
 import 窗互证 from "./pages/窗互证.jsx";
 import 窗参 from "./pages/窗参.jsx";
+import 乱序缓冲 from "./pages/乱序缓冲.jsx";
 
 const 主链 = [
   ["/", "热度台"],
@@ -18,7 +19,7 @@ const 主链 = [
   ["/旁路匣", "⑤ 旁路匣"],
   ["/窗互证", "窗互证"],
 ];
-const 次链 = [["/窗参", "窗参"]];
+const 次链 = [["/乱序缓冲", "乱序缓冲"], ["/窗参", "窗参"]];
 
 export default function App() {
   return (
@@ -26,7 +27,7 @@ export default function App() {
       <header className="顶栏">
         <div className="顶上行">
           <div className="牌名">播浪</div>
-          <div className="牌骨">事件时抬水位 → 关热度窗 → 迟到撤回 / 超迟旁路 → 窗互证</div>
+          <div className="牌骨">缓冲排序 → 事件时抬水位 → 关热度窗 → 迟到撤回 / 超迟旁路 → 窗互证</div>
         </div>
         <nav className="管线">
           {主链.map(([to, l]) => (
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/撤回单" element={<撤回单 />} />
           <Route path="/旁路匣" element={<旁路匣 />} />
           <Route path="/窗互证" element={<窗互证 />} />
+          <Route path="/乱序缓冲" element={<乱序缓冲 />} />
           <Route path="/窗参" element={<窗参 />} />
         </Routes>
       </main>

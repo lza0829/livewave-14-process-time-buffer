@@ -20,6 +20,8 @@ def 总览() -> dict:
             "已关闭窗": c("SELECT COUNT(*) FROM 热度窗 WHERE 状态='已关闭'"),
             "撤回单": c("SELECT COUNT(*) FROM 撤回单"),
             "旁路匣": c("SELECT COUNT(*) FROM 旁路匣"),
+            "缓冲深度": c("SELECT COUNT(*) FROM 乱序缓冲 WHERE 释放批次=''"),
+            "缓冲释放批次": c("SELECT COUNT(*) FROM 缓冲释放"),
             "装载批次": c("SELECT COUNT(*) FROM 装载批次"),
             "末次贯验": dict(末) if 末 else None,
         }

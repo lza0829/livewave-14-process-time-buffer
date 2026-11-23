@@ -78,7 +78,59 @@ CREATE TABLE IF NOT EXISTS 窗贯验 (
   是否通过 INTEGER NOT NULL,
   说明 TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS 乱序缓冲 (
+  入缓序号 INTEGER PRIMARY KEY AUTOINCREMENT,
+  事件编号 TEXT NOT NULL UNIQUE,
+  房间键 TEXT NOT NULL REFERENCES 直播间(房间键),
+  事件时 TEXT NOT NULL,
+  处理时 TEXT NOT NULL,
+  入缓处理时 TEXT NOT NULL,
+  入缓水位 TEXT NOT NULL,
+  载荷 TEXT NOT NULL,
+  批次编号 TEXT NOT NULL DEFAULT '',
+  释放批次 TEXT NOT NULL DEFAULT '',
+  释放处理时 TEXT NOT NULL DEFAULT '',
+  排序位 INTEGER NOT NULL DEFAULT 0,
+  是否处理时乱序 INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS 缓冲态 (
+  房间键 TEXT PRIMARY KEY REFERENCES 直播间(房间键),
+  释放水位 TEXT NOT NULL DEFAULT '',
+  上次释放处理时 TEXT NOT NULL DEFAULT '',
+  释放批次数 INTEGER NOT NULL DEFAULT 0,
+  最大处理时 TEXT NOT NULL DEFAULT '',
+  最大事件时 TEXT NOT NULL DEFAULT '',
+  口径 TEXT NOT NULL DEFAULT '处理时缓冲排序再推进'
+);
+CREATE TABLE IF NOT EXISTS 缓冲释放 (
+  编号 INTEGER PRIMARY KEY AUTOINCREMENT,
+  释放批次 TEXT NOT NULL,
+  房间键 TEXT NOT NULL,
+  释放处理时 TEXT NOT NULL,
+  水位前 TEXT NOT NULL,
+  水位后 TEXT NOT NULL,
+  释放事件数 INTEGER NOT NULL,
+  事件编号集 TEXT NOT NULL,
+  乙旁路集 TEXT NOT NULL,
+  甲旁路集 TEXT NOT NULL,
+  口径 TEXT NOT NULL
+);
 """
+
+
+站规默认 = {
+    "站名": "播浪",
+    "窗长秒": "60",
+    "允许迟到秒": "30",
+    "水位推进策略": "事件时最大值",
+    "关窗条件": "水位>=窗止即关闭发射",
+    "旁路条件": "水位>=窗止+允许迟到",
+    "骨架": "互动事件入流→处理时乱序缓冲排序→事件时间水位线批量推进→热度窗关闭发射→迟到修正撤回→窗输出与撤回互证",
+    "乱序处理策略": "处理时缓冲排序再推进",
+    "缓冲超时秒": "5",
+    "缓冲批量": "4",
+    "缓冲超时策略": "同房缓冲最老处理时起超过缓冲超时秒、或缓冲深度达缓冲批量、或请求冲刷时，整房释放并按事件时排序批量抬水位",
+}
 
 
 def 此刻() -> str:
@@ -88,17 +140,9 @@ def 此刻() -> str:
 def 初始化库() -> None:
     conn = 连接()
     conn.executescript(建表)
-    if conn.execute("SELECT COUNT(*) AS c FROM 站规").fetchone()["c"] == 0:
-        for k, v in {
-            "站名": "播浪",
-            "窗长秒": "60",
-            "允许迟到秒": "30",
-            "水位推进策略": "事件时最大值",
-            "关窗条件": "水位>=窗止即关闭发射",
-            "旁路条件": "水位>=窗止+允许迟到",
-            "骨架": "互动事件入流→事件时间水位线推进→热度窗关闭发射→迟到修正撤回→窗输出与撤回互证",
-        }.items():
-            conn.execute("INSERT INTO 站规(键, 值) VALUES (?, ?)", (k, v))
+    # 补齐缺失的站规键，不覆盖已有取值
+    for k, v in 站规默认.items():
+        conn.execute("INSERT OR IGNORE INTO 站规(键, 值) VALUES (?, ?)", (k, v))
     if conn.execute("SELECT COUNT(*) AS c FROM 直播间").fetchone()["c"] == 0:
         conn.execute(
             "INSERT INTO 直播间(房间键, 标题, 主播, 开播事件时, 状态) VALUES (?,?,?,?,?)",

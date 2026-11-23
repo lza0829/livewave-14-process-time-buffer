@@ -14,7 +14,8 @@ export default function 窗互证页() {
     <div>
       <h1 className="题">窗互证</h1>
       <p className="述">
-        核对：已关闭窗的点赞/送礼/笔数 = 落入该窗的事件合计；若有撤回，末次撤回的新值须与窗表一致。不是枢纽-链接-卫星贯验。
+        核对：已关闭窗的点赞/送礼/笔数 = 落入该窗的事件合计；若有撤回，末次撤回的新值须与窗表一致；
+        另校验乱序缓冲「不得半截」：未释放事件不得已可见、已释放事件不得缺失、有缓冲时水位不得越过释放水位。不是枢纽-链接-卫星贯验。
       </p>
       <div className="行">
         <button className="水" onClick={跑}>跑窗互证</button>
@@ -31,7 +32,12 @@ export default function 窗互证页() {
             <div className="卡"><b>{果.已关闭窗数}</b><span>已关窗</span></div>
             <div className="卡"><b>{果.撤回数}</b><span>撤回</span></div>
             <div className="卡"><b>{果.旁路数}</b><span>旁路</span></div>
+            <div className="卡"><b>{果.缓冲深度 ?? "—"}</b><span>缓冲深度</span></div>
+            <div className="卡"><b>{果.缓冲释放批次数 ?? "—"}</b><span>缓冲释放批次</span></div>
           </div>
+          {果.问题?.length > 0 && (
+            <div className="提示条" style={{ borderColor: "var(--败)" }}>{果.问题.join("；")}</div>
+          )}
         </div>
       )}
       <div className="段">

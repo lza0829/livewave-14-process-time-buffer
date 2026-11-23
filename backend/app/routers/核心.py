@@ -3,13 +3,16 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.db import 夹具目录, 连接
-from app.services import 装载, 贯验, 目录
+from app.seed import 此刻 as _此刻
+from app.services import 装载, 贯验, 目录, 乱序缓冲
+
 
 路由 = APIRouter(prefix="/api")
 
 
 class 装载请求(BaseModel):
     批次编号: str = ""
+    冲刷: bool = False
     事件: list = Field(default_factory=list)
 
 
@@ -129,11 +132,65 @@ def 做装载(体: 装载请求):
 
 
 @路由.post("/装载/夹具")
-def 装夹具(名: str = "准时热度样例"):
+def 装夹具(名: str = "准时热度样例", 冲刷: bool = False):
     路径 = 夹具目录 / f"{名}.json"
     if not 路径.exists():
         raise HTTPException(404, f"夹具不存在:{名}")
-    return 装载.装一批(json.loads(路径.read_text(encoding="utf-8")))
+    体 = json.loads(路径.read_text(encoding="utf-8"))
+
+    批们 = 体.get("批们")
+    if isinstance(批们, list):
+        报告们 = []
+        for 批 in 批们:
+            单 = dict(批)
+            单.setdefault("冲刷", False)
+            报告们.append(装载.装一批(单))
+        汇总 = {
+            k: sum(r.get(k, 0) for r in 报告们)
+            for k in ("入缓", "释放", "入窗", "旁路", "撤回", "新关窗")
+        }
+        汇总["口径"] = 报告们[0]["口径"] if 报告们 else ""
+        return {
+            "批次编号": 体.get("批次编号", 名),
+            "口径": 报告们[0]["口径"] if 报告们 else "",
+            "批数": len(报告们),
+            "汇总": 汇总,
+            "缓冲深度": 报告们[-1]["缓冲深度"] if 报告们 else 0,
+            "批次们": 报告们,
+            "明细": [d for r in 报告们 for d in r["明细"]],
+        }
+
+    体["冲刷"] = 冲刷 or bool(体.get("冲刷"))
+    return 装载.装一批(体)
+
+
+@路由.get("/乱序缓冲")
+def 取乱序缓冲():
+    conn = 连接()
+    try:
+        态 = 乱序缓冲.读态(conn)
+        态["时刻"] = _此刻()
+        return 态
+    finally:
+        conn.close()
+
+
+@路由.get("/缓冲释放")
+def 列缓冲释放():
+    conn = 连接()
+    try:
+        out = []
+        for r in conn.execute("SELECT * FROM 缓冲释放 ORDER BY 编号 DESC LIMIT 100"):
+            d = dict(r)
+            for k in ("事件编号集", "乙旁路集", "甲旁路集"):
+                try:
+                    d[k] = json.loads(d[k] or "[]")
+                except Exception:
+                    pass
+            out.append(d)
+        return out
+    finally:
+        conn.close()
 
 
 @路由.post("/贯验")

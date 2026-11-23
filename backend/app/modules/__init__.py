@@ -15,7 +15,9 @@ def 列表() -> list:
                 for line in text.splitlines():
                     if line.startswith("状态"):
                         状态 = line.split("=", 1)[-1].strip().strip("\"'")
-                    if line.startswith('"""') and "空桩" in text:
+                    if line.startswith("说明"):
+                        说明 = line.split("=", 1)[-1].strip().strip("\"'")
+                    if not 说明 and line.startswith('"""') and "空桩" in text:
                         说明 = text.split('"""')[1].strip().splitlines()[0]
             out.append({"名": p.name, "状态": 状态, "说明": 说明})
     return out
